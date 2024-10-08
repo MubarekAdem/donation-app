@@ -1,5 +1,5 @@
 // pages/register.js
-import Register from "@/components/Auth/Register";
+import Register from "@/components/auth/Register";
 
 const RegisterPage = () => {
   return <Register />;
