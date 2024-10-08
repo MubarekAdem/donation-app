@@ -1,10 +1,9 @@
-// pages/dashboard.js
-
 import { useState } from "react";
 import { Layout, Button, Card, Modal } from "antd";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/router";
 import FoodDetail from "@/components/user/FoodDetail"; // Import the FoodDetail component
+import NavBar from "@/components/common/NavBar";
 
 const { Header, Content, Footer } = Layout;
 
@@ -26,6 +25,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <Header style={{ backgroundColor: "#1890ff", color: "#fff" }}>
+        <NavBar />
         <h1 style={{ color: "#fff" }}>Dashboard</h1>
       </Header>
 
@@ -34,8 +34,14 @@ export default function Dashboard() {
           <p>Loading...</p>
         ) : (
           <>
-            <h2>Welcome, {session.user.name}!</h2>
-            <p>Email: {session.user.email}</p>
+            {session ? ( // Check if session exists
+              <>
+                <h2>Welcome, {session.user.name}!</h2>
+                <p>Email: {session.user.email}</p>
+              </>
+            ) : (
+              <h2>Please log in to access your dashboard.</h2> // Message for logged-out users
+            )}
             <div style={{ display: "flex", justifyContent: "space-around" }}>
               <Card
                 title="Food"

@@ -2,7 +2,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { Layout, Button } from "antd";
 import { useRouter } from "next/router";
-import { UserOutlined } from "@ant-design/icons"; // Importing UserOutlined icon
+import { UserOutlined } from "@ant-design/icons";
 
 const { Header } = Layout;
 
@@ -41,6 +41,15 @@ const Navbar = () => {
               <UserOutlined
                 style={{ fontSize: "40px", color: "#fff", marginRight: "10px" }}
               />
+            )}
+            {session.user.role === "admin" && (
+              <Button
+                type="link"
+                style={{ color: "#fff" }}
+                onClick={() => router.push("/dashboard/user-manage")}
+              >
+                Users List
+              </Button>
             )}
             <Button
               type="link"

@@ -1,8 +1,8 @@
-// lib/mongodb.js
+// src/lib/mongodb.js
 
 import { MongoClient } from "mongodb";
 
-const uri = process.env.MONGODB_URI; // Make sure you have this in your .env.local file
+const uri = process.env.MONGODB_URI; // Ensure you have this in your .env.local file
 const options = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -24,4 +24,16 @@ if (process.env.NODE_ENV === "development") {
   clientPromise = client.connect();
 }
 
-export default clientPromise;
+// Define and export the dbConnect function
+export const dbConnect = async () => {
+  console.log("Connecting to MongoDB...");
+  try {
+    await clientPromise; // Make sure clientPromise resolves
+    console.log("Successfully connected to MongoDB.");
+  } catch (error) {
+    console.error("MongoDB connection error:", error);
+    throw error; // Rethrow to handle in the API
+  }
+};
+
+export default clientPromise; // This is a default export for clientPromise
