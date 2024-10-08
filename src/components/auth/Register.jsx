@@ -1,53 +1,60 @@
-// components/Auth/Register.js
+// components/Register.js
+
 import { useState } from "react";
-import { Button, Form, Input } from "antd";
+import { signIn } from "next-auth/react";
+import { Button, Input } from "antd";
 
 const Register = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
 
-  const handleSubmit = async (values) => {
-    const response = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: values.name,
-        email: values.email,
-        password: values.password,
-        phone,
-      }),
-    });
-    const data = await response.json();
-    alert(data.message);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    // Handle registration logic here (e.g., API call to register the user)
   };
 
   return (
-    <Form onFinish={handleSubmit}>
+    <div className="registration-form">
       <h2>Register</h2>
-      <Form.Item
-        name="name"
-        rules={[{ required: true, message: "Please input your name!" }]}
-      >
-        <Input placeholder="Name" />
-      </Form.Item>
-      <Form.Item
-        name="email"
-        rules={[{ required: true, message: "Please input your email!" }]}
-      >
-        <Input placeholder="Email" />
-      </Form.Item>
-      <Form.Item
-        name="password"
-        rules={[{ required: true, message: "Please input your password!" }]}
-      >
-        <Input.Password placeholder="Password" />
-      </Form.Item>
-      <Form.Item name="phone">
-        <Input placeholder="Phone" onChange={(e) => setPhone(e.target.value)} />
-      </Form.Item>
-      <Button type="primary" htmlType="submit">
-        Register
-      </Button>
-    </Form>
+      <form onSubmit={handleSubmit}>
+        <Input
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+        <Input
+          placeholder="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <Input
+          placeholder="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <Input
+          placeholder="Phone"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          required
+        />
+        <Button type="primary" htmlType="submit">
+          Register
+        </Button>
+      </form>
+      <div className="google-signin">
+        <Button type="default" onClick={() => signIn("google")}>
+          Sign in with Google
+        </Button>
+      </div>
+    </div>
   );
 };
 

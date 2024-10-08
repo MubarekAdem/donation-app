@@ -1,18 +1,27 @@
 // lib/mongodb.js
-import mongoose from "mongoose";
 
-const connectDB = async () => {
-  if (mongoose.connection.readyState >= 1) return;
+import { MongoClient } from "mongodb";
 
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("MongoDB Connected");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-  }
+const uri = process.env.MONGODB_URI; // Make sure you have this in your .env.local file
+const options = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 };
 
-export default connectDB;
+let client;
+let clientPromise;
+
+if (process.env.NODE_ENV === "development") {
+  // In development mode, use a global variable to ensure we reuse the MongoClient
+  if (!global._mongoClientPromise) {
+    client = new MongoClient(uri, options);
+    global._mongoClientPromise = client.connect();
+  }
+  clientPromise = global._mongoClientPromise;
+} else {
+  // In production mode, create a new MongoClient
+  client = new MongoClient(uri, options);
+  clientPromise = client.connect();
+}
+
+export default clientPromise;

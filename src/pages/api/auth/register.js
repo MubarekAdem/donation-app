@@ -1,30 +1,61 @@
-// pages/api/auth/register.js
-import bcrypt from "bcryptjs";
-import User from "../../../models/User";
-import connectDB from "../../../lib/mongodb";
+// components/Register.js
 
-connectDB();
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { Button, Input } from "antd";
 
-export default async function handler(req, res) {
-  if (req.method === "POST") {
-    const { name, email, password, phone } = req.body;
+const Register = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
 
-    if (!name || !email || !password || !phone) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    // Handle registration logic here (e.g., API call to register the user)
+  };
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
+  return (
+    <div className="registration-form">
+      <h2>Register</h2>
+      <form onSubmit={handleSubmit}>
+        <Input
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+        <Input
+          placeholder="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <Input
+          placeholder="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <Input
+          placeholder="Phone"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          required
+        />
+        <Button type="primary" htmlType="submit">
+          Register
+        </Button>
+      </form>
+      <div className="google-signin">
+        <Button type="default" onClick={() => signIn("google")}>
+          Sign in with Google
+        </Button>
+      </div>
+    </div>
+  );
+};
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const user = new User({ name, email, password: hashedPassword, phone });
-    await user.save();
-
-    res.status(201).json({ message: "User created successfully" });
-  } else {
-    res.setHeader("Allow", ["POST"]);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
-  }
-}
+export default Register;

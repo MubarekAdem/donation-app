@@ -1,8 +1,9 @@
 // pages/api/auth/[...nextauth].js
+
 import NextAuth from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
-import { connectToDatabase } from "../../../lib/mongodb"; // Make sure to have your MongoDB connection
+import GoogleProvider from "next-auth/providers/google"; // Import Google provider directly
+import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
+import clientPromise from "../../../lib/mongodb"; // Ensure you have MongoDB connection setup
 
 export default NextAuth({
   providers: [
@@ -10,44 +11,35 @@ export default NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        // Implement your user authentication logic here
-        const { email, password } = credentials;
-        const db = await connectToDatabase();
-        const user = await db.collection("users").findOne({ email });
-
-        if (user && user.password === password) {
-          return user; // Return user if authenticated
-        }
-        return null; // Return null if not authenticated
-      },
-    }),
+    // Other providers can be added here
   ],
+  adapter: MongoDBAdapter(clientPromise),
   session: {
-    strategy: "jwt",
+    strategy: "jwt", // Use JWT for session management
+    maxAge: 365 * 24 * 60 * 60, // 1 year in seconds
   },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
+    async jwt({ token, account, profile, user }) {
+      if (account) {
+        // If this is the first sign-in, store more profile information
+        token.accessToken = account.access_token;
+        if (profile) {
+          token.emailVerified = profile.email_verified || null;
+          token.image = profile.picture; // Get the profile image
+        }
       }
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id;
-      }
+      // Add extra fields to the session
+      session.accessToken = token.accessToken;
+      session.user.emailVerified = token.emailVerified;
+      session.user.image = token.image;
       return session;
     },
-  },
-  pages: {
-    signIn: "/login",
-    // You can customize the pages here
+    async redirect({ url, baseUrl }) {
+      // Always redirect to the dashboard page after login
+      return baseUrl + "/dashboard";
+    },
   },
 });

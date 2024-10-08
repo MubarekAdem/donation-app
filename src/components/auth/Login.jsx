@@ -1,4 +1,4 @@
-// components/Auth/Login.js
+// src/components/Auth/Login.js
 import { useState } from "react";
 import { Button, Form, Input } from "antd";
 import { signIn } from "next-auth/react";
@@ -15,11 +15,17 @@ const Login = () => {
       password: values.password,
       redirect: false,
     });
+
     if (result.error) {
       alert("Invalid email or password");
     } else {
-      router.push("/");
+      router.push("/dashboard");
     }
+  };
+
+  const handleGoogleSignIn = async () => {
+    await signIn("google", { redirect: false });
+    router.push("/dashboard");
   };
 
   return (
@@ -43,7 +49,7 @@ const Login = () => {
       <Button type="primary" htmlType="submit">
         Login
       </Button>
-      <Button type="link" onClick={() => signIn("google")}>
+      <Button type="link" onClick={handleGoogleSignIn}>
         Login with Google
       </Button>
       <br />
