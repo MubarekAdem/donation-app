@@ -53,7 +53,7 @@ const Login = () => {
         Login with Google
       </Button>
       <br />
-      <a href="/forgot-password">Forgot Password?</a>
+      <p href="/forgot-password">Forgot Password?</p>
     </Form>
   );
 };
