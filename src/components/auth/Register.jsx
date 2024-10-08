@@ -12,7 +12,29 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle registration logic here (e.g., API call to register the user)
+
+    // Prepare the user data
+    const userData = { name, email, password, phone };
+
+    // Send a POST request to register the user
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    });
+
+    // Handle the response
+    if (response.ok) {
+      // Optionally redirect to the login page or show a success message
+      alert("Registration successful! Please log in.");
+      // You can also redirect using the router if desired
+      // router.push("/login");
+    } else {
+      const data = await response.json();
+      alert(data.error || "Registration failed!");
+    }
   };
 
   return (

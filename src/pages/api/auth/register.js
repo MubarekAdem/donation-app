@@ -1,61 +1,43 @@
-// components/Register.js
+// pages/api/auth/register.js
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { Button, Input } from "antd";
+import { dbConnect } from "../../../lib/mongodb"; // Import dbConnect
+import User from "../../../models/User"; // Make sure this User model is correctly defined
+import bcrypt from "bcryptjs"; // Import bcrypt for password hashing
 
-const Register = () => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("");
+export default async function handler(req, res) {
+  console.log("Attempting to connect to the database...");
+  await dbConnect();
+  console.log("Successfully connected to the database.");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    // Handle registration logic here (e.g., API call to register the user)
-  };
+  if (req.method === "POST") {
+    const { name, email, password, phone } = req.body;
 
-  return (
-    <div className="registration-form">
-      <h2>Register</h2>
-      <form onSubmit={handleSubmit}>
-        <Input
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-        <Input
-          placeholder="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <Input
-          placeholder="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <Input
-          placeholder="Phone"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          required
-        />
-        <Button type="primary" htmlType="submit">
-          Register
-        </Button>
-      </form>
-      <div className="google-signin">
-        <Button type="default" onClick={() => signIn("google")}>
-          Sign in with Google
-        </Button>
-      </div>
-    </div>
-  );
-};
+    // Check if the user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: "User already exists" });
+    }
 
-export default Register;
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new user
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+      role: "user", // Assign a default role if needed
+    });
+
+    try {
+      await newUser.save();
+      res.status(201).json({ message: "User registered successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to register user" });
+    }
+  } else {
+    res.setHeader("Allow", ["POST"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+}

@@ -1,9 +1,8 @@
-// pages/api/auth/[...nextauth].js
-
 import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google"; // Import Google provider directly
+import GoogleProvider from "next-auth/providers/google";
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
-import clientPromise from "../../../lib/mongodb"; // Ensure you have MongoDB connection setup
+import clientPromise from "../../../lib/mongodb";
+import User from "../../../models/User"; // Import your User model
 
 export default NextAuth({
   providers: [
@@ -11,34 +10,41 @@ export default NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
-    // Other providers can be added here
   ],
   adapter: MongoDBAdapter(clientPromise),
   session: {
-    strategy: "jwt", // Use JWT for session management
-    maxAge: 365 * 24 * 60 * 60, // 1 year in seconds
+    strategy: "jwt",
+    maxAge: 365 * 24 * 60 * 60,
   },
   callbacks: {
-    async jwt({ token, account, profile, user }) {
+    async jwt({ token, account, profile }) {
       if (account) {
-        // If this is the first sign-in, store more profile information
         token.accessToken = account.access_token;
-        if (profile) {
-          token.emailVerified = profile.email_verified || null;
-          token.image = profile.picture; // Get the profile image
+
+        // Fetch the user from the database using their email
+        const user = await User.findOne({ email: profile.email });
+
+        // If user exists in the database, assign their role to the token
+        if (user) {
+          token.role = user.role;
+        } else {
+          // Assign a default role if the user is not found
+          token.role = "user";
         }
+
+        token.emailVerified = profile.email_verified || null;
+        token.image = profile.picture; // Get the profile image
       }
       return token;
     },
     async session({ session, token }) {
-      // Add extra fields to the session
       session.accessToken = token.accessToken;
       session.user.emailVerified = token.emailVerified;
       session.user.image = token.image;
+      session.user.role = token.role; // Add role to session
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Always redirect to the dashboard page after login
       return baseUrl + "/dashboard";
     },
   },
