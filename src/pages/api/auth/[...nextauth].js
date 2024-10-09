@@ -1,8 +1,8 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import clientPromise from "../../../lib/mongodb";
-import User from "../../../models/User"; // Import your User model
 
 export default NextAuth({
   providers: [
@@ -10,42 +10,33 @@ export default NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
-  ],
-  adapter: MongoDBAdapter(clientPromise),
-  session: {
-    strategy: "jwt",
-    maxAge: 365 * 24 * 60 * 60,
-  },
-  callbacks: {
-    async jwt({ token, account, profile }) {
-      if (account) {
-        token.accessToken = account.access_token;
+    CredentialsProvider({
+      name: "Credentials",
+      async authorize(credentials) {
+        const client = await clientPromise;
+        const db = client.db();
+        const user = await db
+          .collection("users")
+          .findOne({ email: credentials.email });
 
-        // Fetch the user from the database using their email
-        const user = await User.findOne({ email: profile.email });
-
-        // If user exists in the database, assign their role to the token
-        if (user) {
-          token.role = user.role;
-        } else {
-          // Assign a default role if the user is not found
-          token.role = "user";
+        if (user && bcrypt.compareSync(credentials.password, user.password)) {
+          return { email: user.email };
         }
-
-        token.emailVerified = profile.email_verified || null;
-        token.image = profile.picture; // Get the profile image
+        return null;
+      },
+    }),
+  ],
+  session: { jwt: true },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.email = user.email;
       }
       return token;
     },
     async session({ session, token }) {
-      session.accessToken = token.accessToken;
-      session.user.emailVerified = token.emailVerified;
-      session.user.image = token.image;
-      session.user.role = token.role; // Add role to session
+      session.user.email = token.email;
       return session;
-    },
-    async redirect({ url, baseUrl }) {
-      return baseUrl + "/dashboard";
     },
   },
 });
