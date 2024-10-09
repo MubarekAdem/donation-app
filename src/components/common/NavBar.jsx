@@ -8,7 +8,7 @@ const Navbar = () => {
       <div className="text-white text-lg">Donation App</div>
       {session ? (
         <div className="flex items-center space-x-4">
-          <span className="text-white">{session.user.name}</span>
+          <span className="text-white">{session.user.email}</span>
           <button
             onClick={() => signOut({ callbackUrl: "/signin" })}
             className="bg-red-500 text-white px-3 py-1 rounded"

@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 
 const SignInForm = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [error, setError] = useState(null);
   const router = useRouter();
 
   const handleSubmit = async (e) => {
@@ -13,11 +14,17 @@ const SignInForm = () => {
       email: formData.email,
       password: formData.password,
     });
-    if (!res?.error) {
-      router.push("/items"); // Redirect to items page after successful sign-in
+
+    if (res?.error) {
+      setError(res.error);
     } else {
-      alert("Error logging in");
+      // Redirect to items page after successful sign-in
+      router.push("/items");
     }
+  };
+
+  const handleGoogleSignIn = () => {
+    signIn("google", { callbackUrl: "/items" });
   };
 
   return (
@@ -39,6 +46,14 @@ const SignInForm = () => {
       <button type="submit" className="bg-blue-500 text-white p-2">
         Sign In
       </button>
+      <button
+        type="button"
+        onClick={handleGoogleSignIn}
+        className="bg-red-500 text-white p-2"
+      >
+        Sign in with Google
+      </button>
+      {error && <p className="text-red-500">{error}</p>}
     </form>
   );
 };

@@ -9,6 +9,7 @@ export default NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // You can add authorization URL if needed
     }),
     CredentialsProvider({
       name: "Credentials",
@@ -26,7 +27,9 @@ export default NextAuth({
       },
     }),
   ],
-  session: { jwt: true },
+  session: {
+    jwt: true,
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -37,6 +40,25 @@ export default NextAuth({
     async session({ session, token }) {
       session.user.email = token.email;
       return session;
+    },
+    async signIn({ user, account, profile }) {
+      const client = await clientPromise;
+      const db = client.db();
+
+      // Check if the user already exists in the database
+      const existingUser = await db
+        .collection("users")
+        .findOne({ email: profile.email });
+      if (!existingUser) {
+        // Create a new user if they do not exist
+        await db.collection("users").insertOne({
+          email: profile.email,
+          name: profile.name,
+          // Add any other user fields you want
+          role: "user", // Set default role
+        });
+      }
+      return true; // Return true to proceed with sign-in
     },
   },
 });

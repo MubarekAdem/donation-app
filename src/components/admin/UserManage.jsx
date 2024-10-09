@@ -1,94 +1,74 @@
-import React, { useEffect, useState } from "react";
-import { Table, Button, Modal, Select } from "antd";
-import { useSession } from "next-auth/react";
-
-const { Option } = Select;
+import { useEffect, useState } from "react";
+import { MongoClient } from "mongodb";
 
 const UserManage = () => {
-  const { data: session } = useSession();
   const [users, setUsers] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [newRole, setNewRole] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUsers = async () => {
-      try {
-        const response = await fetch("/api/users");
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const data = await response.json();
-        setUsers(data);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      }
+      const client = await MongoClient.connect(process.env.MONGODB_URI);
+      const usersCollection = client.db().collection("users");
+      const allUsers = await usersCollection.find().toArray();
+      setUsers(allUsers);
+      setLoading(false);
     };
     fetchUsers();
   }, []);
 
-  const showModal = (user) => {
-    setSelectedUser(user);
-    setNewRole(user.role); // Pre-select current role
-    setIsModalOpen(true);
-  };
+  const handleRoleChange = async (userId, newRole) => {
+    const response = await fetch("/api/updateRole", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, newRole }),
+    });
 
-  const handleOk = async () => {
-    if (selectedUser) {
-      const response = await fetch(`/api/users?id=${selectedUser._id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
-
-      if (response.ok) {
-        const updatedUser = await response.json();
-        setUsers((prev) =>
-          prev.map((user) =>
-            user._id === updatedUser._id ? updatedUser : user
-          )
-        );
-        setIsModalOpen(false);
-      } else {
-        console.error("Failed to update role");
-      }
+    if (response.ok) {
+      // Optionally, refetch users or update local state
+      alert("User role updated successfully");
+    } else {
+      alert("Failed to update user role");
     }
   };
 
+  if (loading) return <div>Loading...</div>;
+
   return (
     <div>
-      <h1>User Management</h1>
-      <Table dataSource={users} rowKey="_id">
-        <Table.Column title="Name" dataIndex="name" key="name" />
-        <Table.Column title="Email" dataIndex="email" key="email" />
-        <Table.Column title="Role" dataIndex="role" key="role" />
-        <Table.Column title="Actions" key="actions">
-          {(text, record) => (
-            <Button type="primary" onClick={() => showModal(record)}>
-              Change Role
-            </Button>
-          )}
-        </Table.Column>
-      </Table>
-
-      <Modal
-        title="Change User Role"
-        open={isModalOpen} // Use 'open' instead of 'visible'
-        onOk={handleOk}
-        onCancel={() => setIsModalOpen(false)}
-      >
-        <Select
-          defaultValue={newRole}
-          onChange={(value) => setNewRole(value)}
-          style={{ width: 120 }}
-        >
-          <Option value="user">User</Option>
-          <Option value="admin">Admin</Option>
-          <Option value="agent">Agent</Option>
-        </Select>
-      </Modal>
+      <h2 className="text-2xl mb-4">User Management</h2>
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user) => (
+            <tr key={user._id}>
+              <td>{user.email}</td>
+              <td>
+                <select
+                  onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                  defaultValue="user" // Set a default role value
+                >
+                  <option value="user">User</option>
+                  <option value="agent">Agent</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </td>
+              <td>
+                <button onClick={() => handleRoleChange(user._id)}>
+                  Change Role
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
